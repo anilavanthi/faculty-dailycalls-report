@@ -50,11 +50,12 @@
         }
         tr:nth-child(even) { background-color: #f2f2f2; }
         tr:hover { background-color: #ddd; }
-
+        .active-row td {
+            background-color: #d9edf7 !important;
+        }
         #resetBtn {
             display: none;
         }
-
         footer {
             text-align: center;
             margin-top: 40px;
@@ -65,7 +66,6 @@
             color: #777;
             text-decoration: none;
         }
-
         @media (max-width: 768px) {
             table, thead, tbody, th, td, tr {
                 display: block;
@@ -88,13 +88,12 @@
             }
         }
     </style>
-
     <script>
         let originalRows = [];
 
         function storeOriginalTable() {
             const table = document.getElementById("reportTable");
-            const rows = Array.from(table.rows).slice(1); // skip header
+            const rows = Array.from(table.rows).slice(1);
             originalRows = rows.map(row => row.cloneNode(true));
         }
 
@@ -104,6 +103,7 @@
             tbody.innerHTML = '';
             originalRows.forEach(row => {
                 if (row.cells[0].innerText === facultyName) {
+                    row.classList.add("active-row");
                     tbody.appendChild(row.cloneNode(true));
                 }
             });
@@ -147,30 +147,36 @@
         <thead>
             <tr>
                 <th title="Click on a faculty row to filter">Faculty</th>
-                <th>Student</th>
+                <th>Student Name</th>
                 <th>Phone Number</th>
-                <th>Status</th>
-                <th>Notes</th>
-                <th>Call Date</th>
                 <th>Hall Ticket No</th>
                 <th>Rank</th>
                 <th>Exam Type</th>
+                <th>Status</th>
+                <th>Notes</th>
+                <th>Address</th>
+                <th>Call Date</th>
             </tr>
         </thead>
         <tbody>
-            {% for row in reports %}
-            <tr>
-                <td data-label="Faculty">{{ row[0] }}</td>
-                <td data-label="Student">{{ row[1] }}</td>
-                <td data-label="Phone Number">{{ row[2] }}</td>
-                <td data-label="Status">{{ row[3] }}</td>
-                <td data-label="Notes">{{ row[4] }}</td>
-                <td data-label="Call Date">{{ row[5] }}</td>
-                <td data-label="Hall Ticket No">{{ row[7] }}</td>
-                <td data-label="Rank">{{ row[8] }}</td>
-                <td data-label="Exam Type">{{ row[6] }}</td>
-            </tr>
-            {% endfor %}
+            {% if reports %}
+                {% for row in reports %}
+                <tr>
+                    <td data-label="Faculty">{{ row[0] }}</td>
+                    <td data-label="Student Name">{{ row[1] }}</td>
+                    <td data-label="Phone Number">{{ row[2] }}</td>
+                    <td data-label="Hall Ticket No">{{ row[3] }}</td>
+                    <td data-label="Rank">{{ row[4] }}</td>
+                    <td data-label="Exam Type">{{ row[5] }}</td>
+                    <td data-label="Status">{{ row[6] }}</td>
+                    <td data-label="Notes">{{ row[7] }}</td>
+                    <td data-label="Address">{{ row[8] }}</td>
+                    <td data-label="Call Date">{{ row[9] }}</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr><td colspan="10" style="text-align:center;">No reports found.</td></tr>
+            {% endif %}
         </tbody>
     </table>
 
@@ -179,7 +185,6 @@
     </footer>
 </body>
 </html>
-
 
 
 

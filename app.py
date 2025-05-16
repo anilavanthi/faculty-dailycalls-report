@@ -27,6 +27,7 @@ def init_db():
         exam_type TEXT,
         hall_ticket_no TEXT,
         rank TEXT,
+        address TEXT,
         FOREIGN KEY (user_id) REFERENCES users(id)
     )''')
     conn.commit()
@@ -66,7 +67,7 @@ def register_faculty():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        is_admin = 0  # Faculty
+        is_admin = 0
         conn = get_db()
         c = conn.cursor()
         c.execute('INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)',
@@ -81,7 +82,7 @@ def register_admin():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        is_admin = 1  # Admin
+        is_admin = 1
         conn = get_db()
         c = conn.cursor()
         c.execute('INSERT INTO users (username, password, is_admin) VALUES (?, ?, ?)',
@@ -105,22 +106,22 @@ def dashboard():
         notes = request.form.get('notes', '').strip()
         call_date = request.form.get('call_date', '').strip()
         exam_type = request.form.get('exam_type', '').strip()
+        address = request.form.get('address', '').strip()
 
         if student:
             conn = get_db()
             c = conn.cursor()
-            c.execute('''INSERT INTO calls (user_id, student, phone_number, hall_ticket_no, rank, status, notes, call_date, exam_type)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                      (session['user_id'], student, phone_number, hall_ticket_no, rank, status, notes, call_date, exam_type))
+            c.execute('''INSERT INTO calls (user_id, student, phone_number, hall_ticket_no, rank, status, notes, call_date, exam_type, address)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                      (session['user_id'], student, phone_number, hall_ticket_no, rank, status, notes, call_date, exam_type, address))
             conn.commit()
             conn.close()
 
     conn = get_db()
     c = conn.cursor()
-    c.execute('''SELECT u.username, c.student, c.phone_number, c.hall_ticket_no, c.rank, c.status, c.notes, c.call_date, c.exam_type
+    c.execute('''SELECT u.username, c.student, c.phone_number, c.hall_ticket_no, c.rank, c.exam_type, c.status, c.notes, c.address, c.call_date
                  FROM calls c JOIN users u ON c.user_id = u.id
                  WHERE u.id=? 
-                 AND (c.exam_type = "EAPCET" OR c.exam_type = "POLYCET" OR c.exam_type = "General")
                  ORDER BY c.call_date DESC''', (session['user_id'],))
     calls = c.fetchall()
     conn.close()
@@ -133,29 +134,24 @@ def adminpanel():
 
     conn = get_db()
     c = conn.cursor()
-    
-    # Get faculty list (non-admin users)
     c.execute('''SELECT DISTINCT u.id, u.username FROM users u
                  JOIN calls c ON u.id = c.user_id WHERE u.is_admin = 0''')
     faculty_list = c.fetchall()
 
-    # Get the selected faculty filter from the form
     faculty_filter = request.args.get('faculty', '')
 
-    # Modify the query to filter reports by faculty if selected
     if faculty_filter:
-        c.execute('''SELECT u.username, c.student, c.phone_number, c.status, c.notes, c.call_date, c.exam_type, c.hall_ticket_no, c.rank
+        c.execute('''SELECT u.username, c.student, c.phone_number, c.hall_ticket_no, c.rank, c.exam_type, c.status, c.notes, c.address, c.call_date
                      FROM calls c JOIN users u ON c.user_id = u.id
                      WHERE u.id = ?
                      ORDER BY c.call_date DESC''', (faculty_filter,))
     else:
-        c.execute('''SELECT u.username, c.student, c.phone_number, c.status, c.notes, c.call_date, c.exam_type, c.hall_ticket_no, c.rank
+        c.execute('''SELECT u.username, c.student, c.phone_number, c.hall_ticket_no, c.rank, c.exam_type, c.status, c.notes, c.address, c.call_date
                      FROM calls c JOIN users u ON c.user_id = u.id
                      ORDER BY c.call_date DESC''')
 
     reports = c.fetchall()
     conn.close()
-
     return render_template('report.html', reports=reports, faculty_list=faculty_list, selected_user=faculty_filter)
 
 @app.route('/export_excel')
@@ -165,13 +161,13 @@ def export_excel():
 
     conn = get_db()
     c = conn.cursor()
-    c.execute('''SELECT u.username, c.student, c.phone_number, c.hall_ticket_no, c.rank, c.status, c.notes, c.call_date, c.exam_type
+    c.execute('''SELECT u.username, c.student, c.phone_number, c.hall_ticket_no, c.rank, c.exam_type, c.status, c.notes, c.address, c.call_date
                  FROM calls c JOIN users u ON c.user_id = u.id
                  ORDER BY c.call_date DESC''')
     data = c.fetchall()
     conn.close()
 
-    df = pd.DataFrame(data, columns=["Faculty", "Student", "Phone Number", "Hall Ticket No", "Rank", "Status", "Notes", "Date", "Exam Type"])
+    df = pd.DataFrame(data, columns=["Faculty", "Student", "Phone Number", "Hall Ticket No", "Rank", "Exam Type", "Status", "Notes", "Address", "Call Date"])
     file_path = 'faculty_call_reports.xlsx'
     df.to_excel(file_path, index=False)
     return send_file(file_path, as_attachment=True)
@@ -183,12 +179,12 @@ def export_my_excel():
 
     conn = get_db()
     c = conn.cursor()
-    c.execute('''SELECT student, phone_number, hall_ticket_no, rank, status, notes, call_date, exam_type
+    c.execute('''SELECT student, phone_number, hall_ticket_no, rank, exam_type, status, notes, address, call_date
                  FROM calls WHERE user_id=? ORDER BY call_date DESC''', (session['user_id'],))
     data = c.fetchall()
     conn.close()
 
-    df = pd.DataFrame(data, columns=["Student", "Phone Number", "Hall Ticket No", "Rank", "Status", "Notes", "Date", "Exam Type"])
+    df = pd.DataFrame(data, columns=["Student", "Phone Number", "Hall Ticket No", "Rank", "Exam Type", "Status", "Notes", "Address", "Call Date"])
     file_path = f"{session['username']}_call_report.xlsx"
     df.to_excel(file_path, index=False)
     return send_file(file_path, as_attachment=True)
@@ -201,6 +197,7 @@ def logout():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True)
+
 
 
 
