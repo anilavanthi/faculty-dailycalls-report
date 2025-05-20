@@ -9,15 +9,20 @@
         <h2>{{ role }} Registration</h2>
     </header>
     <div class="container">
-        <form method="POST">
+        <form method="POST" autocomplete="off">
+            <!-- Hidden dummy fields to block browser autofill -->
+            <input type="text" name="fakeuser" style="display:none">
+            <input type="password" name="fakepass" style="display:none">
+        
             <label for="username">Username:</label>
-            <input type="text" name="username" required><br>
-
+            <input type="text" name="username" autocomplete="off" required><br>
+        
             <label for="password">Password:</label>
-            <input type="password" name="password" required><br>
-
+            <input type="password" name="password" autocomplete="new-password" required><br>
+        
             <input type="submit" value="Register">
         </form>
+        
     </div>
 </body>
 </html>
